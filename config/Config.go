@@ -1,5 +1,9 @@
 package config
 
+import (
+	"fmt"
+)
+
 type Config struct {
 	Mysql  Mysql  `yaml:"mysql"`
 	System System `yaml:"system"`
@@ -19,6 +23,11 @@ type System struct {
 	Host string `yaml:"host"`
 	Port int    `yaml:"port"`
 	Env  string `yaml:"env"`
+	Mode string `yaml:"mode"`
+}
+
+func (s *System) Addr() string {
+	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
 
 type Logger struct {
