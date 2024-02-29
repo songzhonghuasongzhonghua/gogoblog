@@ -4,15 +4,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type RouterGroup struct {
+	*gin.RouterGroup
+}
+
 func InitRouter() *gin.Engine {
-	//mode := global.Config.System.Mode
-	//gin.SetMode(mode)
+
 	engine := gin.Default()
 
-	engine.GET("hello", func(context *gin.Context) {
-		context.JSON(200, "hello")
-
-	})
+	apiGroup := engine.Group("api")
+	apiRouterGroup := RouterGroup{apiGroup}
+	apiRouterGroup.SettingsRouter()
 
 	return engine
 
