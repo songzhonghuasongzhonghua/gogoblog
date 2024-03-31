@@ -7,4 +7,5 @@ type Mysql struct {
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	LogLevel string `yaml:"log_level"`
+	Config   string `yaml:"config"`
 }

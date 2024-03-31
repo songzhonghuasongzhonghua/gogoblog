@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/songzhonghuasongzhonghua/gogoblog/global"
+	"github.com/songzhonghuasongzhonghua/gogoblog/models"
 	"github.com/songzhonghuasongzhonghua/gogoblog/utils"
+	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -58,7 +61,7 @@ func (ImagesApi) ImagesUpload(c *gin.Context) {
 		//判断文件格式是否为图片格式
 		nameList := strings.Split(file.Filename, ".")
 		suffixName := strings.ToLower(nameList[len(nameList)-1])
-		if utils.InList(suffixName, ImagesWhiteList) {
+		if !utils.InList(suffixName, ImagesWhiteList) {
 			imagesRes = append(imagesRes, ImagesResponse{
 				FileName:  file.Filename,
 				Msg:       "文件格式不正确",
@@ -80,6 +83,27 @@ func (ImagesApi) ImagesUpload(c *gin.Context) {
 			continue
 		}
 
+		//判断文件是否保存过(hash值判断)
+		fileObj, err := file.Open()
+		fileData, err := io.ReadAll(fileObj)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fileHash := utils.MD5(fileData)
+
+		banner := models.BannerModel{}
+		err = global.DB.Take(&banner, "hash = ?", fileHash).Error
+		//文件已存在
+		if err == nil {
+			imagesRes = append(imagesRes, ImagesResponse{
+				FileName:  banner.Path,
+				Msg:       "文件已存在",
+				IsSuccess: false,
+			})
+			continue
+		}
+
 		//保存文件至项目
 		err = c.SaveUploadedFile(file, filePath)
 		if err != nil {
@@ -94,6 +118,12 @@ func (ImagesApi) ImagesUpload(c *gin.Context) {
 			FileName:  filePath,
 			Msg:       "文件上传成功",
 			IsSuccess: true,
+		})
+		//保存至数据库
+		global.DB.Create(&models.BannerModel{
+			Hash: fileHash,
+			Path: filePath,
+			Name: file.Filename,
 		})
 	}
 

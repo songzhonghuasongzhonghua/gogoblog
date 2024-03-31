@@ -5,6 +5,7 @@ mysql:
   user: root
   password: 123456
   log_level: dev
+  config: ?parseTime=true
 
 
 system:

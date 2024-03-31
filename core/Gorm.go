@@ -1,8 +1,8 @@
 package core
 
 import (
-	"fmt"
 	"github.com/songzhonghuasongzhonghua/gogoblog/global"
+	"github.com/songzhonghuasongzhonghua/gogoblog/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
@@ -11,12 +11,16 @@ import (
 
 func InitGorm() *gorm.DB {
 	mysqlConf := global.Config.Mysql
-	dsn := mysqlConf.User + ":" + mysqlConf.Password + "@tcp(" + mysqlConf.Host + ":" + strconv.Itoa(mysqlConf.Port) + ")/" + mysqlConf.DB
+	dsn := mysqlConf.User + ":" + mysqlConf.Password + "@tcp(" + mysqlConf.Host + ":" + strconv.Itoa(mysqlConf.Port) + ")/" + mysqlConf.DB + mysqlConf.Config
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("链接成功")
+
+	err = db.AutoMigrate(&models.BannerModel{})
+	if err != nil {
+		log.Fatal(err)
+	}
 	return db
 }
