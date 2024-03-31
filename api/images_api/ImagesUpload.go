@@ -5,7 +5,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/songzhonghuasongzhonghua/gogoblog/global"
 	"github.com/songzhonghuasongzhonghua/gogoblog/utils"
+	"io/fs"
+	"os"
 	"path"
+	"strings"
 )
 
 type ImagesResponse struct {
@@ -13,6 +16,16 @@ type ImagesResponse struct {
 	Msg       string `json:"msg"`
 	IsSuccess bool   `json:"is_success"`
 }
+
+var (
+	ImagesWhiteList = []string{
+		"jpg",
+		"png",
+		"gif",
+		"webp",
+		"svg",
+	}
+)
 
 func (ImagesApi) ImagesUpload(c *gin.Context) {
 	imageFrom, err := c.MultipartForm()
@@ -25,22 +38,38 @@ func (ImagesApi) ImagesUpload(c *gin.Context) {
 		utils.Failed(c, "不存在的文件")
 		return
 	}
-	//判断文件大小
-	//判断文件路径是否相同
 
 	var imagesRes []ImagesResponse
 
+	basePath := global.Config.Uploads.Path
+	//判断文件保存路径是否存在
+	_, err = os.ReadDir(basePath)
+	if err != nil {
+		//不存在则重新创建
+		err = os.Mkdir(basePath, fs.ModePerm)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+	}
+
 	for _, file := range filesList {
 
-		filePath := path.Join("uploads", file.Filename)
-		err = c.SaveUploadedFile(file, filePath)
-		if err != nil {
-			//append(imagesRes, ImagesResponse{
-			//	FileName: file.Filename,
-			//	Msg:      fmt.Printf("文件大小超过%dMB", global.Config.Uploads.Size),
-			//})
+		//判断文件格式是否为图片格式
+		nameList := strings.Split(file.Filename, ".")
+		suffixName := strings.ToLower(nameList[len(nameList)-1])
+		if utils.InList(suffixName, ImagesWhiteList) {
+			imagesRes = append(imagesRes, ImagesResponse{
+				FileName:  file.Filename,
+				Msg:       "文件格式不正确",
+				IsSuccess: false,
+			})
+
 			continue
 		}
+
+		//判断文件大小
+		filePath := path.Join(basePath, file.Filename)
 		fileSize := float64(file.Size) / float64(1024*1024)
 		if fileSize >= float64(global.Config.Uploads.Size) {
 			imagesRes = append(imagesRes, ImagesResponse{
@@ -51,12 +80,21 @@ func (ImagesApi) ImagesUpload(c *gin.Context) {
 			continue
 		}
 
+		//保存文件至项目
+		err = c.SaveUploadedFile(file, filePath)
+		if err != nil {
+			imagesRes = append(imagesRes, ImagesResponse{
+				FileName:  file.Filename,
+				Msg:       err.Error(),
+				IsSuccess: false,
+			})
+			continue
+		}
 		imagesRes = append(imagesRes, ImagesResponse{
-			FileName:  file.Filename,
+			FileName:  filePath,
 			Msg:       "文件上传成功",
 			IsSuccess: true,
 		})
-
 	}
 
 	utils.Success(c, gin.H{

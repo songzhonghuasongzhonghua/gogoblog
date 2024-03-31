@@ -22,4 +22,4 @@ logger:
 
 uploads:
   size: 2
-  path: uploads
+  path: uploads/files
